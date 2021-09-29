@@ -70,13 +70,13 @@ void calibrate6886(){
   int counter = 500;
   for(int i = 0; i < counter; i++){
     M5.IMU.getGyroData(&gyro.x,&gyro.y,&gyro.z);
-    M5.IMU.getAccelData(&gyro.x,&gyro.y,&gyro.z);
+    M5.IMU.getAccelData(&acc.x,&acc.y,&acc.z);
     gyroSum[0] += gyro.x;
     gyroSum[1] += gyro.y;
     gyroSum[2] += gyro.z;
-    accSum[0] += gyro.x;
-    accSum[1] += gyro.y;
-    accSum[2] += gyro.z;
+    accSum[0] += acc.x;
+    accSum[1] += acc.y;
+    accSum[2] += acc.z;
     delay(2);
   }
     

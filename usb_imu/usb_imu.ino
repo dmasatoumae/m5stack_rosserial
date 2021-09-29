@@ -34,16 +34,16 @@ uint32_t timer;
 void calibrate6886(){
   float gyroSum[3];
   float accSum[3];
-  int counter = 500;
+  int counter = 5000;
   for(int i = 0; i < counter; i++){
     M5.IMU.getGyroData(&gyro.x,&gyro.y,&gyro.z);
-    M5.IMU.getAccelData(&gyro.x,&gyro.y,&gyro.z);
+    M5.IMU.getAccelData(&acc.x,&acc.y,&acc.z);
     gyroSum[0] += gyro.x;
     gyroSum[1] += gyro.y;
     gyroSum[2] += gyro.z;
-    accSum[0] += gyro.x;
-    accSum[1] += gyro.y;
-    accSum[2] += gyro.z;
+    accSum[0] += acc.x;
+    accSum[1] += acc.y;
+    accSum[2] += acc.z;
     delay(2);
   }
     
@@ -103,7 +103,7 @@ void loop() {
   imu_msg.header.frame_id = "m5stack";
   pub_imu.publish(&imu_msg);
 
-  M5.Lcd.setCursor(0, 0);M5.Lcd.printf("[ IMU1 ]");
+  M5.Lcd.setCursor(0, 0);M5.Lcd.printf("[ IMU ]");
 
   M5.Lcd.setCursor(0, 20);M5.Lcd.printf("Accel[G] : x,y,z");
   M5.Lcd.setCursor(0, 40);M5.Lcd.printf("%5.2f   %5.2f   %5.2f   ",acc.x, acc.y, acc.z );
