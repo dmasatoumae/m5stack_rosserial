@@ -7,24 +7,40 @@
 #include <ros/time.h>
 #include <sensor_msgs/Imu.h>
 #include <std_msgs/Float32.h>
+#include <geometry_msgs/Vector3Stamped.h>
 #include <MadgwickAHRS.h>
 #include <utility/MahonyAHRS.h>
 #include <Kalman.h>
+//#define SENSOR_MSGS_IMU
+//#define SENSOR_MSGS_FLOAT32
+#define VECTOR3STAMPED
 
 ros::NodeHandle nh;
-//sensor_msgs::Imu imu_msg;
-//ros::Publisher pub_imu("imu2/data_raw", &imu_msg);
 
-std_msgs::Float32 angle;
-ros::Publisher pub_imu("imu2/angle", &angle);
+#ifdef SENSOR_MSGS_IMU
+  sensor_msgs::Imu imu_msg;
+  ros::Publisher pub_imu("imu2/data_raw", &imu_msg);
+  float cosRoll;
+  float sinRoll;
+  float cosPitch;
+  float sinPitch;
+  float cosYaw;
+  float sinYaw;
+#endif
+
+#ifdef SENSOR_MSGS_FLOAT32
+  std_msgs::Float32 angle;
+  ros::Publisher pub_imu("imu2/angle", &angle);
+
+#endif
+
+#ifdef VECTOR3STAMPED
+  geometry_msgs::Vector3Stamped rpy;
+  ros::Publisher pub_imu("imu/rpy", &rpy);
+#endif
 
 float roll,pitch,yaw;
-//float cosRoll;
-//float sinRoll;
-//float cosPitch;
-//float sinPitch;
-//float cosYaw;
-//float sinYaw;
+
 
 geometry_msgs::Vector3 acc;
 geometry_msgs::Vector3 gyro;
@@ -61,22 +77,21 @@ void calibrate6886(){
 }
 
 void applycalibration(){
-  gyroOffset.x =-10.06;
-  gyroOffset.y =-3.39;
-  gyroOffset.z =-3.55;
-  accOffset.x =-0.02;
-  accOffset.y =-0.01;
-  accOffset.z =0.09;
-
-  M5.IMU.getGyroData(&gyro.x,&gyro.y,&gyro.z);
-  M5.IMU.getAccelData(&acc.x,&acc.y,&acc.z);
+    gyroOffset.x =-10.06;
+    gyroOffset.y =-3.39;
+    gyroOffset.z =-3.55;
+    accOffset.x =-0.02;
+    accOffset.y =-0.01;
+    accOffset.z =0.09;
+    M5.IMU.getGyroData(&gyro.x,&gyro.y,&gyro.z);
+    M5.IMU.getAccelData(&acc.x,&acc.y,&acc.z);
     
-  gyro.x -= gyroOffset.x;
-  gyro.y -= gyroOffset.y;
-  gyro.z -= gyroOffset.z;
-  acc.x -= accOffset.x;
-  acc.y -= accOffset.y;
-  acc.z -= accOffset.z;
+    gyro.x -= gyroOffset.x;
+    gyro.y -= gyroOffset.y;
+    gyro.z -= gyroOffset.z;
+    acc.x -= accOffset.x;
+    acc.y -= accOffset.y;
+    acc.z -= accOffset.z;
 }
 
 void setup(){
@@ -88,8 +103,12 @@ void setup(){
     M5.Lcd.setTextColor(GREEN , BLACK);
     M5.Lcd.setTextSize(2);
     M5.Lcd.setBrightness(10);
+    //nh.getHardware()->setBaud(115200);
     nh.initNode();
     nh.advertise(pub_imu);
+
+    
+    
 }
 
 void loop() {
@@ -97,41 +116,54 @@ void loop() {
   //MahonyAHRSupdateIMU(gyro.x * DEG_TO_RAD, gyro.y * DEG_TO_RAD, gyro.z * DEG_TO_RAD, acc.x, acc.y, acc.z, &pitch, &roll, &yaw);
   MahonyAHRSupdateIMU(gyro.x * 0.01, gyro.y * 0.01, gyro.z * 0.01, acc.x, acc.y, acc.z, &pitch, &roll, &yaw);
 
-  angle.data = roll;
-  //cosRoll = cos(roll / 2.0);
-  //sinRoll = sin(roll / 2.0);
-  //cosPitch = cos(pitch / 2.0);
-  //sinPitch = sin(pitch / 2.0);
-  //cosYaw = cos(yaw / 2.0);
-  //sinYaw = sin(yaw / 2.0);
-
-  //imu_msg.orientation.w = cosRoll * cosPitch * cosYaw + sinRoll * sinPitch * sinYaw;
-  //imu_msg.orientation.x = sinRoll * cosPitch * cosYaw - cosRoll * sinPitch * sinYaw;
-  //imu_msg.orientation.y = cosRoll * sinPitch * cosYaw + sinRoll * cosPitch * sinYaw;
-  //imu_msg.orientation.z = cosRoll * cosPitch * sinYaw - sinRoll * sinPitch * cosYaw;
+  M5.Lcd.setCursor(0, 20);M5.Lcd.printf("[ IMU_BUCKET2 ]");
   
-  //imu_msg.linear_acceleration = acc;
-  //imu_msg.angular_velocity = gyro;
+  #ifdef SENSOR_MSGS_IMU
+    cosRoll = cos(roll / 2.0);
+    sinRoll = sin(roll / 2.0);
+    cosPitch = cos(pitch / 2.0);
+    sinPitch = sin(pitch / 2.0);
+    cosYaw = cos(yaw / 2.0);
+    sinYaw = sin(yaw / 2.0);
+
+    imu_msg.orientation.w = cosRoll * cosPitch * cosYaw + sinRoll * sinPitch * sinYaw;
+    imu_msg.orientation.x = sinRoll * cosPitch * cosYaw - cosRoll * sinPitch * sinYaw;
+    imu_msg.orientation.y = cosRoll * sinPitch * cosYaw + sinRoll * cosPitch * sinYaw;
+    imu_msg.orientation.z = cosRoll * cosPitch * sinYaw - sinRoll * sinPitch * cosYaw;
   
-  //imu_msg.header.stamp = nh.now();
-  //imu_msg.header.frame_id = "m5stack";
-  //pub_imu.publish(&imu_msg);
+    imu_msg.linear_acceleration = acc;
+    imu_msg.angular_velocity = gyro;
+  
+    imu_msg.header.stamp = nh.now();
+    imu_msg.header.frame_id = "m5stack";
+    pub_imu.publish(&imu_msg);
+    M5.Lcd.setCursor(0, 30);M5.Lcd.printf("Accel[G] : x,y,z");
+    M5.Lcd.setCursor(0, 50);M5.Lcd.printf("%5.2f   %5.2f   %5.2f   ",acc.x, acc.y, acc.z );
+    M5.Lcd.setCursor(0, 75);M5.Lcd.printf("Gyro[o/s] : x,y,z");
+    M5.Lcd.setCursor(0, 95);M5.Lcd.printf("%6.2f  %6.2f  %6.2f      ",gyro.x, gyro.y, gyro.z );
+    M5.Lcd.setCursor(0, 120);M5.Lcd.printf("Rpy[deg] : x,y,z");
+    M5.Lcd.setCursor(0, 140);M5.Lcd.printf("%6.2f  %6.2f  %6.2f      ",pitch, roll, yaw );
+  #endif
+  
+  #ifdef SENSOR_MSGS_FLOAT32
+    angle.data = pitch;
+    pub_imu.publish(&angle);
+    M5.Lcd.setCursor(0, 120);M5.Lcd.printf("Rpy[deg] : x,y,z");
+    M5.Lcd.setCursor(0, 140);M5.Lcd.printf("%6.2f  %6.2f  %6.2f      ",pitch, roll, yaw );
+  #endif
 
-  pub_imu.publish(&angle);
-
-  M5.Lcd.setCursor(0, 10);M5.Lcd.printf("[ IMU2 ]");
-
-  //M5.Lcd.setCursor(0, 20);M5.Lcd.printf("Accel[G] : x,y,z");
-  //M5.Lcd.setCursor(0, 40);M5.Lcd.printf("%5.2f   %5.2f   %5.2f   ",acc.x, acc.y, acc.z );
-
-  //M5.Lcd.setCursor(0, 65);M5.Lcd.printf("Gyro[o/s] : x,y,z");
-  //M5.Lcd.setCursor(0, 85);M5.Lcd.printf("%6.2f  %6.2f  %6.2f      ",gyro.x, gyro.y, gyro.z );
-
-  M5.Lcd.setCursor(0, 110);M5.Lcd.printf("Rpy[deg] : x,y,z");
-  M5.Lcd.setCursor(0, 130);M5.Lcd.printf("%6.2f  %6.2f  %6.2f      ",pitch, roll, yaw );
+  #ifdef VECTOR3STAMPED
+    rpy.header.stamp = nh.now();
+    rpy.vector.x = roll;
+    rpy.vector.y = pitch;
+    rpy.vector.z = yaw;
+    pub_imu.publish(&rpy);
+    M5.Lcd.setCursor(0, 120);M5.Lcd.printf("Rpy[deg] : x,y,z");
+    M5.Lcd.setCursor(0, 140);M5.Lcd.printf("%6.2f  %6.2f  %6.2f      ",pitch, roll, yaw );
+  #endif
     
   nh.spinOnce();
   M5.update();
 
-  //delay(10);
+  //delay(1);
 }

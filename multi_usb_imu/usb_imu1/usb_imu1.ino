@@ -7,11 +7,13 @@
 #include <ros/time.h>
 #include <sensor_msgs/Imu.h>
 #include <std_msgs/Float32.h>
+#include <geometry_msgs/Vector3Stamped.h>
 #include <MadgwickAHRS.h>
 #include <utility/MahonyAHRS.h>
 #include <Kalman.h>
 //#define SENSOR_MSGS_IMU
-#define SENSOR_MSGS_FLOAT32
+//#define SENSOR_MSGS_FLOAT32
+#define VECTOR3STAMPED
 
 ros::NodeHandle nh;
 
@@ -29,6 +31,12 @@ ros::NodeHandle nh;
 #ifdef SENSOR_MSGS_FLOAT32
   std_msgs::Float32 angle;
   ros::Publisher pub_imu("imu1/angle", &angle);
+
+#endif
+
+#ifdef VECTOR3STAMPED
+  geometry_msgs::Vector3Stamped rpy;
+  ros::Publisher pub_imu("imu/rpy", &rpy);
 #endif
 
 float roll,pitch,yaw;
@@ -108,7 +116,7 @@ void loop() {
   //MahonyAHRSupdateIMU(gyro.x * DEG_TO_RAD, gyro.y * DEG_TO_RAD, gyro.z * DEG_TO_RAD, acc.x, acc.y, acc.z, &pitch, &roll, &yaw);
   MahonyAHRSupdateIMU(gyro.x * 0.01, gyro.y * 0.01, gyro.z * 0.01, acc.x, acc.y, acc.z, &pitch, &roll, &yaw);
 
-  M5.Lcd.setCursor(0, 10);M5.Lcd.printf("[ IMU1 ]");
+  M5.Lcd.setCursor(0, 20);M5.Lcd.printf("[ IMU_BOOM1 ]");
   
   #ifdef SENSOR_MSGS_IMU
     cosRoll = cos(roll / 2.0);
@@ -140,6 +148,16 @@ void loop() {
   #ifdef SENSOR_MSGS_FLOAT32
     angle.data = pitch;
     pub_imu.publish(&angle);
+    M5.Lcd.setCursor(0, 120);M5.Lcd.printf("Rpy[deg] : x,y,z");
+    M5.Lcd.setCursor(0, 140);M5.Lcd.printf("%6.2f  %6.2f  %6.2f      ",pitch, roll, yaw );
+  #endif
+
+  #ifdef VECTOR3STAMPED
+    rpy.header.stamp = nh.now();
+    rpy.vector.x = roll;
+    rpy.vector.y = pitch;
+    rpy.vector.z = yaw;
+    pub_imu.publish(&rpy);
     M5.Lcd.setCursor(0, 120);M5.Lcd.printf("Rpy[deg] : x,y,z");
     M5.Lcd.setCursor(0, 140);M5.Lcd.printf("%6.2f  %6.2f  %6.2f      ",pitch, roll, yaw );
   #endif
